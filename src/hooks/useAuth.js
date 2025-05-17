@@ -1,55 +1,56 @@
-import { useEffect, useState } from "react";
-import { getStorage, multiRemove } from "../utils/storage";
+import { useState } from "react";
+// import { getStorage } from "../utils/storage";
+import { API_URL } from "../config/env";
 
 const useAuth = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    isLoggedIn();
-  }, []);
+    const logout = async () => {
+        try {
+            await fetch(`${API_URL}/auth/logout`, {
+                method: "POST",
+                credentials: "include",
+            });
+        } finally {
+            setUser(null);
+        }
+    };
 
-  const isLoggedIn = async () => {
-    try {
-      setIsLoading(true);
-      let storedUser = await getStorage("user");
-      let storedToken = await getStorage("token");
-      setUser(storedUser);
-      setToken(storedToken);
+    const fetchUser = async () => {
+        console.log("fetching user");
+        setIsLoading(true)
+        try {
+            const res = await fetch(`${API_URL}/auth/me`, {
+                credentials: "include",
+            });
+            if (res.ok) {
+                const data = await res.json();
 
-      if (storedUser) {
-        setUser(storedUser);
-        setToken(storedToken);
-      } else {
-        setUser(null);
-        setToken(null);
-      }
-    } catch (error) {
-      // Message('customError', error.message);
-      console.log("Error in useAuth:", error);
-      setIsLoading(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+                setUser(data);
+                
+            } else {
+                console.log(res);
+                setUser(null);
+                
+            }
+        } catch {
+            setUser(null);
+            
+        }finally{
+            setIsLoading(false)
+        }
+    };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    multiRemove(["user", "token"]);
-  };
+    const authInfo = {
+        user,
+        setUser,
+        logout,
+        isLoading,
+        fetchUser,
+    };
 
-  const authInfo = {
-    user,
-    setUser,
-    token,
-    setToken,
-    logout,
-    isLoading,
-  };
-
-  return authInfo;
+    return authInfo;
 };
 
 export default useAuth;
